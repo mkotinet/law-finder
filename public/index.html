@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="app-version" content="2.0.0">
+  <meta name="app-version" content="2.1.0">
   <title>LawFinder - AI 판례 검색 &amp; 법률 Q&amp;A</title>
-  <meta name="description" content="대한민국 법제처 공공 판례 검색 및 Gemini AI 기반 2단계 RAG 법률 질문 분석 포털">
+  <meta name="description" content="대한민국 법제처 공공 판례 검색 및 Gemini AI 기반 2단계 RAG·눈높이 쉬운 법률 해설 포털">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
@@ -14,7 +14,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
-  <link rel="stylesheet" href="/style.css?v=2.0.0">
+  <link rel="stylesheet" href="/style.css?v=2.1.0">
 </head>
 <body>
   <!-- PWA 원클릭 설치 유도 배너 (지침 제15원칙) -->
@@ -34,7 +34,7 @@
         <div class="logo-icon" aria-hidden="true">⚖️</div>
         <div class="brand-text">
           <h1>LawFinder</h1>
-          <span class="sub-title">AI 법률 판례 포털 v2.0</span>
+          <span class="sub-title">AI 법률 판례 포털 v2.1</span>
         </div>
       </button>
 
@@ -65,6 +65,19 @@
       </div>
     </div>
   </header>
+
+  <!-- 전역 눈높이 선택 메뉴바 (중학생 / 고등학생 / 대학생·일반) -->
+  <div class="reading-level-bar" id="reading-level-bar" role="region" aria-label="해설 눈높이 선택 메뉴">
+    <div class="reading-level-inner">
+      <span class="level-bar-label">🎯 눈높이 선택</span>
+      <div class="level-segment-group" role="group" aria-label="연령·수준별 해설 눈높이">
+        <button type="button" class="level-pill" data-reading-level="middle">🌱 중학생</button>
+        <button type="button" class="level-pill" data-reading-level="high">📘 고등학생</button>
+        <button type="button" class="level-pill active" data-reading-level="general">🎓 대학생·일반</button>
+      </div>
+      <span class="level-bar-hint" id="level-bar-hint">실생활 계약·분쟁 예시와 체크포인트로 쉽게 설명합니다</span>
+    </div>
+  </div>
 
   <!-- 상단바 접힘 시 1행 미니멀 요약바 (지침 제19원칙) -->
   <div id="collapsedSummary" class="collapsed-summary-bar" hidden>
@@ -186,6 +199,7 @@
               <button type="button" class="suggest-chip" data-ai-question="주 20시간 아르바이트를 6개월간 했는데 주휴수당과 퇴직금을 받을 수 있나요?">알바 주휴수당</button>
             </div>
             <button type="button" id="ai-submit-btn" class="primary-btn ai-btn">
+              <span id="ai-active-level-badge" class="ai-level-mini-tag">🎓 대학생·일반</span>
               <span>AI 분석 &amp; 실시간 판례 찾기</span>
               <span class="btn-arrow" aria-hidden="true">→</span>
             </button>
@@ -232,6 +246,7 @@
 
       <!-- 상세 탭 네비게이션 -->
       <div class="modal-tabs" role="tablist">
+        <button type="button" class="modal-tab tab-easy" data-detail-tab="easy" role="tab">✨ 쉬운 해설</button>
         <button type="button" class="modal-tab active" data-detail-tab="holding" role="tab">판시사항</button>
         <button type="button" class="modal-tab" data-detail-tab="summary" role="tab">판결요지</button>
         <button type="button" class="modal-tab" data-detail-tab="statute" role="tab">참조조문·판례</button>
@@ -243,6 +258,23 @@
         <div id="modal-external-notice" class="external-notice-box" hidden>
           <strong>📌 외부 연계 출처 판례 안내</strong>
           <p>국세법령정보시스템 등 외부 연계 판례는 법제처 Open API에서 전문 텍스트가 직접 제공되지 않습니다. 하단의 <strong>[법제처 원문]</strong> 버튼에서 공식 페이지로 바로 확인하실 수 있습니다.</p>
+        </div>
+
+        <!-- ✨ 눈높이 3단계 쉬운 해설 탭 -->
+        <div id="modal-tab-easy" class="detail-tab-pane">
+          <div class="modal-level-switcher" role="group" aria-label="판례 쉬운 해설 눈높이 전환">
+            <button type="button" class="level-pill" data-reading-level="middle">🌱 중학생</button>
+            <button type="button" class="level-pill" data-reading-level="high">📘 고등학생</button>
+            <button type="button" class="level-pill active" data-reading-level="general">🎓 대학생·일반</button>
+          </div>
+
+          <div id="modal-easy-loading" class="loading-state compact-loading" hidden>
+            <div class="spinner ai-spinner"></div>
+            <p>중학생·고등학생·대학생 눈높이로 판례를 쉽게 풀고 있습니다...</p>
+            <span class="loading-sub">한 번 생성하면 3단계 눈높이를 지연 없이(0ms) 바로 비교할 수 있습니다.</span>
+          </div>
+
+          <div id="modal-easy-content" class="easy-explain-wrap"></div>
         </div>
 
         <div id="modal-tab-holding" class="detail-tab-pane active">
@@ -353,6 +385,6 @@
   <!-- 토스트 알림 컨테이너 -->
   <div id="toast-container" class="toast-wrap" aria-live="polite"></div>
 
-  <script src="/app.js?v=2.0.0" defer></script>
+  <script src="/app.js?v=2.1.0" defer></script>
 </body>
 </html>

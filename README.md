@@ -1,6 +1,6 @@
-# ⚖️ LawFinder v2.0 (AI 판례 검색 & 법률 Q&A 포털)
+# ⚖️ LawFinder v2.1 (AI 판례 검색 & 눈높이 법률 Q&A 포털)
 
-대한민국 법제처 국가법령정보 공동활용(`https://www.law.go.kr`, HTTPS/JSON) Open API와 **Google Gemini 2.5 Flash**를 결합한 **실시간 2단계 RAG 법률 판례 검색·질의응답 서비스**입니다.
+대한민국 법제처 국가법령정보 공동활용(`https://www.law.go.kr`, HTTPS/JSON) Open API와 **Google Gemini 2.5 Flash**를 결합한 **실시간 2단계 RAG & 중학생·고등학생·대학생/일반 3단계 눈높이 법률 해설 서비스**입니다.
 
 👉 **운영 주소:** [https://law.danminlove.com](https://law.danminlove.com)
 

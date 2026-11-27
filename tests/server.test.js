@@ -129,7 +129,7 @@ test('보안 헤더, PWA 무캐시 헤더, 입력 검증 및 Rate Limiting 통�
     assert.equal(verRes.status, 200);
     assert.match(verRes.headers.get('cache-control'), /no-store/);
     const verJson = await verRes.json();
-    assert.equal(verJson.version, '2.0.0');
+    assert.equal(verJson.version, '2.1.0');
 
     const swRes = await fetch(`${srv.baseUrl}/sw.js`);
     assert.equal(swRes.status, 200);
@@ -400,5 +400,188 @@ test('북마크 클라이언트별 UUID 격리 및 화이트리스트 저장 테
     assert.equal(listA.bookmarks.length, 1);
   } finally {
     await srv.close();
+  }
+});
+
+
+test('v2.1.0 눈높이 3단계 판례 해설(/api/prec/explain): 정상 생성, 캐시 히트 Rate Limit 미차감, 외부연계·폴백 검증', async () => {
+  let geminiCalls = 0;
+
+  const mockFetch = async (url, init = {}) => {
+    const u = String(url);
+    if (u.startsWith('https://www.law.go.kr/DRF/lawSearch.do')) {
+      return new Response(
+        JSON.stringify({
+          PrecSearch: {
+            totalCnt: '1',
+            prec: [
+              {
+                판례일련번호: '622141',
+                사건명: '배우자가 지배하는 법인의 가수금 반제로 전세금을 현금증여 받았다고 보기 어렵다',
+                사건번호: '서울행정법원-2025-구합-51124',
+                선고일자: '2026.06.12',
+                법원명: '',
+                사건종류명: '일반행정',
+                데이터출처명: '국세법령정보시스템'
+              }
+            ]
+          }
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (u.includes('ID=622247')) {
+      return new Response(
+        JSON.stringify({
+          PrecService: {
+            판례정보일련번호: '622247',
+            사건명: '전세보증금반환보증 지연손해금 사건',
+            사건번호: '2026다200365',
+            선고일자: '20260529',
+            법원명: '대법원',
+            사건종류명: '민사',
+            판결유형: '판결',
+            판시사항: '[1] 보증채무 이행 지연 시 지연손해금 인정 여부(적극)',
+            판결요지: '보증기관이 정당한 사유 없이 보증금 지급을 늦추면 지연손해금을 지급해야 한다.',
+            참조조문: '민법 제397조, 주택임대차보호법 제3조'
+          }
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    if (u.includes('ID=622141')) {
+      return new Response(JSON.stringify({ Law: '일치하는 판례가 없습니다.' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    if (u.includes('generativelanguage.googleapis.com')) {
+      geminiCalls++;
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      oneLineVerdict: '보증금을 늦게 돌려주면 늦어진 기간만큼 이자(지연손해금)를 더 줘야 합니다.',
+                      glossary: [
+                        { term: '적극', meaning: '법원이 맞다·인정된다고 판단했다는 뜻이에요.' },
+                        { term: '지연손해금', meaning: '약속 날짜보다 늦게 갚을 때 추가로 내는 이자예요.' }
+                      ],
+                      levels: {
+                        middle: {
+                          title: '🌱 늦게 갚으면 추가 이자를 내야 해요',
+                          explanation: '보증금을 돌려주기로 약속한 날이 지났는데 안 주면 늦어진 만큼 이자를 더 줘야 해요.',
+                          example: '친구가 다음 주까지 갚기로 한 용돈을 한 달 늦게 준다면 미안한 만큼 보상을 해주는 것과 같아요.'
+                        },
+                        high: {
+                          title: '📘 보증채무 이행지체와 지연손해금',
+                          explanation: '보증기관이 약정 기한을 넘겨 보증금을 지급하면 지연손해금(법정 지연이자)을 부담해야 합니다.',
+                          example: '알바 임금을 정해진 날에 못 받았을 때 지연이자를 청구할 수 있는 원리와 같습니다.'
+                        },
+                        general: {
+                          title: '🎓 전세보증금 반환보증 지연손해금 청구 기준',
+                          explanation: '주택도시보증공사 등 보증기관도 보증금 지급 기한을 넘길 경우 민법상 지연손해금 지급 의무가 인정됩니다.',
+                          example: '전세보증보험 이행청구 후 정당한 사유 없이 지급이 지연되면 지연이자를 함께 청구할 수 있습니다.'
+                        }
+                      }
+                    })
+                  }
+                ]
+              }
+            }
+          ]
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    return new Response('Not Found', { status: 404 });
+  };
+
+  // aiMax: 1 로 설정해 캐시 히트가 Rate Limit을 차감하지 않는지 엄격히 검증
+  const srv = await startTestServer({
+    lawOc: 'testoc',
+    geminiApiKey: 'AIzaTestFakeKey99999',
+    fetchImpl: mockFetch,
+    rateLimitConfig: { generalMax: 50, aiMax: 1 }
+  });
+
+  try {
+    // 1. 잘못된 ID -> 400
+    const badRes = await fetch(`${srv.baseUrl}/api/prec/explain?id=drop_table`);
+    assert.equal(badRes.status, 400);
+
+    // 2. 최초 요청(캐시 미스) -> 200, Gemini 1회 호출로 3단계 일괄 생성
+    const firstRes = await fetch(`${srv.baseUrl}/api/prec/explain?id=622247`);
+    assert.equal(firstRes.status, 200);
+    const first = await firstRes.json();
+    assert.equal(first.analysisSource, 'gemini');
+    assert.equal(first.fromCache, false);
+    assert.ok(first.data.levels.middle.example.length > 5);
+    assert.ok(first.data.levels.high.explanation.length > 5);
+    assert.ok(first.data.levels.general.explanation.length > 5);
+    assert.equal(geminiCalls, 1);
+
+    // 3. 동일 ID 3회 연속 재호출 -> 캐시 히트, Rate Limit(aiMax=1) 미차감, 모두 200 OK
+    for (let i = 0; i < 3; i++) {
+      const hitRes = await fetch(`${srv.baseUrl}/api/prec/explain?id=622247`);
+      assert.equal(hitRes.status, 200);
+      const hitJson = await hitRes.json();
+      assert.equal(hitJson.fromCache, true);
+    }
+    assert.equal(geminiCalls, 1);
+
+    // 4. 새로운 ID(캐시 미스)는 aiMax=1 초과로 429 차단되어야 함
+    await fetch(`${srv.baseUrl}/api/prec/search?query=전세`);
+    const secondNewRes = await fetch(`${srv.baseUrl}/api/prec/explain?id=622141`);
+    assert.equal(secondNewRes.status, 429);
+  } finally {
+    await srv.close();
+  }
+
+  // 5. Gemini 미설정/장애 시 26종 내장 용어사전 규칙 폴백 + 외부 연계 판례(622141) 및 /api/ask level 검증
+  const fallbackSrv = await startTestServer({
+    lawOc: 'testoc',
+    geminiApiKey: '',
+    fetchImpl: mockFetch,
+    rateLimitConfig: { generalMax: 50, aiMax: 10 }
+  });
+  try {
+    await fetch(`${fallbackSrv.baseUrl}/api/prec/search?query=전세`);
+    const extExplainRes = await fetch(`${fallbackSrv.baseUrl}/api/prec/explain?id=622141`);
+    assert.equal(extExplainRes.status, 200);
+    const extExplain = await extExplainRes.json();
+    assert.equal(extExplain.analysisSource, 'rule-fallback');
+    assert.equal(extExplain.isExternalOnly, true);
+    assert.ok(extExplain.data.levels.middle.explanation.length > 10);
+    assert.ok(extExplain.data.glossary.length >= 1);
+
+    // /api/ask level별 응답 검증 (middle vs high)
+    const askMiddleRes = await fetch(`${fallbackSrv.baseUrl}/api/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: '전세 보증금을 안 돌려줘요', level: 'middle' })
+    });
+    assert.equal(askMiddleRes.status, 200);
+    const askMiddle = await askMiddleRes.json();
+    assert.equal(askMiddle.level, 'middle');
+    assert.equal(askMiddle.levelLabel, '중학생');
+    assert.ok(askMiddle.aiAnalysis.easyExample.includes('민수네'));
+    assert.ok(Array.isArray(askMiddle.aiAnalysis.glossary) && askMiddle.aiAnalysis.glossary.length >= 1);
+
+    const askHighRes = await fetch(`${fallbackSrv.baseUrl}/api/ask`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: '전세 보증금을 안 돌려줘요', level: 'high' })
+    });
+    assert.equal(askHighRes.status, 200);
+    const askHigh = await askHighRes.json();
+    assert.equal(askHigh.level, 'high');
+    assert.equal(askHigh.fromCache, false); // middle과 캐시 키 분리 확인
+    assert.ok(askHigh.aiAnalysis.easyExample.includes('자취방'));
+  } finally {
+    await fallbackSrv.close();
   }
 });

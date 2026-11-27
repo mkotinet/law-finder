@@ -1,12 +1,12 @@
 {
   "name": "law-finder",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "AI-powered Precedent Search & Legal Q&A Portal for Korean Law",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node -c server.js && node -c lib/cache.js && node -c lib/security.js && node -c public/app.js && node -c public/sw.js && node --test tests/server.test.js"
+    "test": "node -c server.js && node -c lib/cache.js && node -c lib/security.js && node -c lib/explainer.js && node -c public/app.js && node -c public/sw.js && node --test tests/server.test.js"
   },
   "dependencies": {
     "express": "^4.21.2"

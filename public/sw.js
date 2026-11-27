@@ -1,10 +1,10 @@
 // PWA Service Worker (Network-First with Real Cache Fallback, GET Same-Origin Only)
-const CACHE_NAME = 'law-finder-v2.0.0';
+const CACHE_NAME = 'law-finder-v2.1.0';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/style.css?v=2.0.0',
-  '/app.js?v=2.0.0',
+  '/style.css?v=2.1.0',
+  '/app.js?v=2.1.0',
   '/icon-192.png',
   '/icon-512.png',
   '/icon.svg'
@@ -32,14 +32,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  // GET 요청 및 동일 출처 HTTP(S)만 처리 (POST / 외부 확장 프로그램 무시)
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-  // API 및 버전/매니페스트는 항상 네트워크 전용
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname === '/version.json' ||
@@ -57,7 +55,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 자산: Network-First + 성공 응답 캐시 갱신 + 오프라인 폴백
   event.respondWith(
     fetch(req)
       .then((networkRes) => {
