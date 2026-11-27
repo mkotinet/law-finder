@@ -1,0 +1,19 @@
+{
+  "id": "/?pwa=1",
+  "name": "LawFinder - AI 판례 검색 및 법률 Q&A",
+  "short_name": "LawFinder",
+  "description": "대한민국 공공 판례 검색 및 AI 기반 법률 질문 분석 포털",
+  "start_url": "/?pwa=1",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

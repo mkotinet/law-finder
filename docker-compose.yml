@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  law-finder:
+    image: node:20-alpine
+    container_name: law-finder
+    restart: unless-stopped
+    ports:
+      - "8095:80"
+    volumes:
+      - lawfinder_data:/app/data
+    environment:
+      - PORT=80
+      - TZ=Asia/Seoul
+      - LAW_OC=${LAW_OC:-}                 # 국가법령정보센터(open.law.go.kr) Open API 발급 인증값(ID)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-} # Google Gemini AI API Key
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    command: >
+      /bin/sh -c "
+        apk add --no-cache git &&
+        git config --global user.name 'mkotinet' &&
+        git config --global user.email 'mkotinet@users.noreply.github.com' &&
+        rm -rf /app_src &&
+        if [ -n \"$$GITHUB_TOKEN\" ]; then
+          git clone https://mkotinet:$${GITHUB_TOKEN}@github.com/mkotinet/law-finder.git /app_src &&
+          git -C /app_src remote set-url origin https://github.com/mkotinet/law-finder.git
+        else
+          git clone https://github.com/mkotinet/law-finder.git /app_src
+        fi &&
+        mkdir -p /app/data &&
+        cp -rn /app_src/data/* /app/data/ 2>/dev/null || true &&
+        rm -rf /app_src/data &&
+        ln -s /app/data /app_src/data &&
+        cd /app_src &&
+        npm install --production &&
+        node server.js
+      "
+    networks:
+      - npm_default
+
+volumes:
+  lawfinder_data:
+
+networks:
+  npm_default:
+    external: true
