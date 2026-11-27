@@ -239,7 +239,7 @@ function createApp(options = {}) {
   const lawOc = options.lawOc !== undefined ? options.lawOc : (process.env.LAW_OC || '');
   const geminiApiKey = options.geminiApiKey !== undefined ? options.geminiApiKey : (process.env.GEMINI_API_KEY || '');
   const primaryGeminiModel = options.geminiModel || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-  const fallbackGeminiModels = options.fallbackGeminiModels || ['gemini-flash-latest'];
+  const fallbackGeminiModels = options.fallbackGeminiModels || ['gemini-flash-latest', 'gemini-flash-lite-latest'];
   const fetchImpl = options.fetchImpl || global.fetch;
   const dataDir = options.dataDir || path.join(__dirname, 'data');
   const rateLimitConfig = options.rateLimitConfig || {};
