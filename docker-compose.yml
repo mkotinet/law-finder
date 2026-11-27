@@ -5,6 +5,7 @@ services:
     image: node:20-alpine
     container_name: law-finder
     restart: unless-stopped
+    mem_limit: 256m
     ports:
       - "8095:80"
     volumes:
@@ -12,8 +13,11 @@ services:
     environment:
       - PORT=80
       - TZ=Asia/Seoul
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=192
       - LAW_OC=${LAW_OC:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/api/health || exit 1"]
@@ -28,10 +32,10 @@ services:
         git config --global user.email 'mkotinet@users.noreply.github.com' &&
         rm -rf /app_src &&
         if [ -n \"$$GITHUB_TOKEN\" ]; then
-          git clone https://mkotinet:$${GITHUB_TOKEN}@github.com/mkotinet/law-finder.git /app_src &&
+          git clone --depth 1 https://mkotinet:$${GITHUB_TOKEN}@github.com/mkotinet/law-finder.git /app_src &&
           git -C /app_src remote set-url origin https://github.com/mkotinet/law-finder.git
         else
-          git clone https://github.com/mkotinet/law-finder.git /app_src
+          git clone --depth 1 https://github.com/mkotinet/law-finder.git /app_src
         fi &&
         mkdir -p /app/data &&
         cp -rn /app_src/data/* /app/data/ 2>/dev/null || true &&

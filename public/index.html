@@ -2,56 +2,80 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>LawFinder - AI 판례 검색 & 법률 Q&A</title>
-  <meta name="description" content="대한민국 공공 판례 검색 및 AI 기반 법률 질문/유사 사례 분석 서비스">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="app-version" content="2.0.0">
+  <title>LawFinder - AI 판례 검색 &amp; 법률 Q&amp;A</title>
+  <meta name="description" content="대한민국 법제처 공공 판례 검색 및 Gemini AI 기반 2단계 RAG 법률 질문 분석 포털">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/icon.svg">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png">
+  <link rel="stylesheet" href="/style.css?v=2.0.0">
 </head>
 <body>
+  <!-- PWA 원클릭 설치 유도 배너 (지침 제15원칙) -->
+  <div id="pwa-install-banner" class="pwa-banner" hidden>
+    <div class="pwa-banner-inner">
+      <button type="button" id="btn-pwa-banner-install" class="pwa-banner-action">
+        <span>📱 홈 화면에 LawFinder 앱 추가하기 📥</span>
+      </button>
+      <button type="button" id="btn-pwa-banner-close" class="pwa-banner-close" aria-label="설치 배너 닫기">✕</button>
+    </div>
+  </div>
+
   <!-- 최상단 헤더 네비게이션 -->
   <header class="app-header">
     <div class="header-inner">
-      <div class="brand-area" onclick="switchTab('search')">
-        <div class="logo-icon">⚖️</div>
+      <button type="button" class="brand-area" id="btn-brand-home" aria-label="LawFinder 홈으로 이동">
+        <div class="logo-icon" aria-hidden="true">⚖️</div>
         <div class="brand-text">
           <h1>LawFinder</h1>
-          <span class="sub-title">AI 법률 판례 포털</span>
+          <span class="sub-title">AI 법률 판례 포털 v2.0</span>
         </div>
-      </div>
-      
+      </button>
+
       <!-- 탭 네비게이션 -->
-      <nav class="nav-tabs">
-        <button class="nav-tab active" id="tab-btn-search" onclick="switchTab('search')">
-          <span class="tab-icon">🔍</span>
+      <nav class="nav-tabs" aria-label="주요 메뉴">
+        <button type="button" class="nav-tab active" id="tab-btn-search" data-tab="search">
+          <span class="tab-icon" aria-hidden="true">🔍</span>
           <span class="tab-label">판례 검색</span>
         </button>
-        <button class="nav-tab" id="tab-btn-ai" onclick="switchTab('ai')">
-          <span class="tab-icon">🤖</span>
-          <span class="tab-label">AI 법률 Q&A</span>
+        <button type="button" class="nav-tab" id="tab-btn-ai" data-tab="ai">
+          <span class="tab-icon" aria-hidden="true">🤖</span>
+          <span class="tab-label">AI 법률 Q&amp;A</span>
         </button>
-        <button class="nav-tab" id="tab-btn-bookmarks" onclick="switchTab('bookmarks')">
-          <span class="tab-icon">⭐</span>
+        <button type="button" class="nav-tab" id="tab-btn-bookmarks" data-tab="bookmarks">
+          <span class="tab-icon" aria-hidden="true">⭐</span>
           <span class="tab-label">보관함</span>
           <span class="badge" id="bookmark-count-badge">0</span>
         </button>
       </nav>
 
-      <div class="status-indicator" id="server-status" title="서버 상태">
-        <span class="status-dot"></span>
-        <span class="status-text">연결 중...</span>
+      <div class="header-tools">
+        <button type="button" id="btn-header-install" class="icon-tool-btn" title="홈 화면 앱 설치 안내" aria-label="앱 설치 안내">📥</button>
+        <button type="button" id="btnToggleTopbar" class="icon-tool-btn" title="검색창 접기/펼치기 (Alt+H)" aria-label="검색창 접기/펼치기">▲</button>
+        <div class="status-indicator" id="server-status" title="서버 연결 상태">
+          <span class="status-dot"></span>
+          <span class="status-text">연결 중...</span>
+        </div>
       </div>
     </div>
   </header>
 
+  <!-- 상단바 접힘 시 1행 미니멀 요약바 (지침 제19원칙) -->
+  <div id="collapsedSummary" class="collapsed-summary-bar" hidden>
+    <div class="collapsed-summary-inner">
+      <span id="collapsedQueryBadge" class="collapsed-query-badge">🔍 대표 민생 판례 보기</span>
+      <button type="button" id="btnQuickExpand" class="quick-expand-btn">검색창 펼치기 ▼</button>
+    </div>
+  </div>
+
   <!-- 법률 면책 고지 배너 -->
-  <aside class="disclaimer-banner">
+  <aside class="disclaimer-banner" id="disclaimer-banner">
     <div class="disclaimer-content">
       <span class="disclaimer-tag">안내</span>
       <p>본 서비스는 대한민국 공공 판례 검색 및 참고용 법률 정보 도구이며, 변호사의 정식 법률 자문이나 변호를 대신할 수 없습니다. 실제 법적 분쟁 시에는 대한법률구조공단(☎132) 또는 법률 전문가와 상담하시기 바랍니다.</p>
@@ -60,135 +84,167 @@
 
   <!-- 메인 컨텐츠 영역 -->
   <main class="app-main">
-
     <!-- 1. 판례 검색 탭 뷰 -->
-    <section id="view-search" class="tab-view active">
-      <div class="search-box-card">
+    <section id="view-search" class="tab-view active" aria-label="판례 검색">
+      <div class="search-box-card" id="search-box-card">
         <div class="search-input-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="search-query-input" placeholder="사건명, 판례 키워드, 법률 조항을 입력하세요 (예: 전세보증금, 층간소음, 사기)" autocomplete="off">
-          <button id="search-submit-btn" class="primary-btn" onclick="executeSearch(1)">검색</button>
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input
+            type="search"
+            id="search-query-input"
+            maxlength="200"
+            placeholder="사건명, 판례 키워드, 법률 조항 입력 (단축키 /)"
+            autocomplete="off"
+            aria-label="판례 검색어"
+          >
+          <button type="button" id="search-submit-btn" class="primary-btn">검색</button>
         </div>
 
-        <div class="search-options-row">
-          <div class="filter-group">
-            <label><input type="radio" name="searchScope" value="1" checked onchange="handleScopeChange()"> 판례명 검색</label>
-            <label><input type="radio" name="searchScope" value="2" onchange="handleScopeChange()"> 본문 전체 검색</label>
+        <!-- 모바일 상세 필터 아코디언 토글 (지침 제19원칙) -->
+        <button type="button" id="btnToggleFilters" class="mobile-filter-toggle" aria-expanded="false">
+          <span>⚙️ 검색 범위·법원 필터 및 추천 키워드</span>
+          <span id="filterToggleIcon">▼</span>
+        </button>
+
+        <div id="topbarCollapsibleFilters" class="search-options-collapsible">
+          <div class="search-options-row">
+            <div class="filter-group" role="radiogroup" aria-label="검색 범위">
+              <label><input type="radio" name="searchScope" value="1" checked> 판례명 검색</label>
+              <label><input type="radio" name="searchScope" value="2"> 본문 전체 검색</label>
+            </div>
+
+            <div class="court-filter-group" role="group" aria-label="법원 필터">
+              <button type="button" class="court-chip active" data-court="">전체</button>
+              <button type="button" class="court-chip" data-court="대법원">대법원</button>
+              <button type="button" class="court-chip" data-court="고등법원">고등법원</button>
+              <button type="button" class="court-chip" data-court="지방법원">지방법원</button>
+            </div>
           </div>
+
           <div class="quick-tags-wrap">
             <span class="tag-label">추천 키워드:</span>
-            <button class="quick-tag" onclick="quickSearch('임대차보증금')">#전세보증금</button>
-            <button class="quick-tag" onclick="quickSearch('층간소음')">#층간소음</button>
-            <button class="quick-tag" onclick="quickSearch('중고거래 사기')">#중고거래사기</button>
-            <button class="quick-tag" onclick="quickSearch('주휴수당')">#주휴수당</button>
-            <button class="quick-tag" onclick="quickSearch('비보호 좌회전')">#교통사고과실</button>
-            <button class="quick-tag" onclick="quickSearch('가계약금')">#가계약금해제</button>
+            <button type="button" class="quick-tag" data-keyword="임대차보증금">#전세보증금</button>
+            <button type="button" class="quick-tag" data-keyword="층간소음">#층간소음</button>
+            <button type="button" class="quick-tag" data-keyword="사기">#중고거래사기</button>
+            <button type="button" class="quick-tag" data-keyword="주휴수당">#주휴수당</button>
+            <button type="button" class="quick-tag" data-keyword="교통사고">#교통사고과실</button>
+            <button type="button" class="quick-tag" data-keyword="가계약금">#가계약금해제</button>
+            <button type="button" class="quick-tag" data-keyword="재산분할">#재산분할</button>
           </div>
         </div>
       </div>
 
-      <!-- 검색 결과 헤더 및 필터 -->
-      <div class="results-meta-bar" id="search-results-meta" style="display: none;">
-        <div class="results-count-text">검색 결과 <strong id="total-count-num">0</strong>건</div>
+      <!-- 검색 결과 헤더 -->
+      <div class="results-meta-bar" id="search-results-meta" hidden>
+        <div class="results-count-text">
+          검색 결과 <strong id="total-count-num">0</strong>건
+          <span id="page-indicator-text" class="page-indicator-text"></span>
+        </div>
         <div class="data-source-badge" id="data-source-badge">법제처 Open API 연동</div>
       </div>
 
+      <!-- 경고/안내 메시지 -->
+      <div id="search-warning-banner" class="warning-banner" hidden></div>
+
       <!-- 판례 목록 렌더링 컨테이너 -->
-      <div id="precedents-list-container" class="precedents-grid">
-        <!-- JS 동적 생성 -->
-      </div>
+      <div id="precedents-list-container" class="precedents-grid"></div>
 
       <!-- 로딩 인디케이터 -->
-      <div id="search-loading" class="loading-state" style="display: none;">
+      <div id="search-loading" class="loading-state" hidden>
         <div class="spinner"></div>
-        <p>판례 데이터베이스 검색 중...</p>
+        <p>법제처 판례 데이터베이스 검색 중...</p>
       </div>
 
       <!-- 페이지네이션 -->
-      <div id="pagination-wrap" class="pagination-container" style="display: none;">
-        <!-- JS 동적 생성 -->
-      </div>
+      <nav id="pagination-wrap" class="pagination-container" aria-label="검색 결과 페이지" hidden></nav>
     </section>
 
     <!-- 2. AI 법률 질문 & RAG 탭 뷰 -->
-    <section id="view-ai" class="tab-view">
+    <section id="view-ai" class="tab-view" aria-label="AI 법률 Q&A">
       <div class="ai-hero-card">
         <div class="ai-hero-header">
-          <div class="ai-badge">AI 하이브리드 어드바이저</div>
+          <div class="ai-badge">Gemini 2.5 Flash × 법제처 실시간 2단계 RAG</div>
           <h2>법률 고민이나 상황을 자연스럽게 물어보세요</h2>
-          <p>전문 법률 용어를 몰라도 괜찮습니다. AI가 질문의 핵심 쟁점을 분석하고 공공 판례 및 관련 법조문을 찾아 알기 쉽게 정리해 드립니다.</p>
+          <p>전문 법률 용어를 몰라도 괜찮습니다. AI가 핵심 법률 키워드를 추출하고 법제처 실시간 판례를 조회·분석해 실제 판례에 근거한 대응 요령을 안내합니다.</p>
         </div>
 
         <div class="ai-input-box">
-          <textarea id="ai-question-input" rows="4" placeholder="예: 전세 계약이 끝났는데 집주인이 다음 세입자가 안 들어온다며 보증금을 안 줘요. 이사 가야 하는데 어떻게 해야 하나요?"></textarea>
+          <textarea
+            id="ai-question-input"
+            rows="4"
+            maxlength="1000"
+            placeholder="예: 전세 계약이 끝났는데 집주인이 다음 세입자가 안 들어온다며 보증금을 안 줘요. 이사 가야 하는데 어떻게 해야 하나요? (Ctrl+Enter 전송)"
+            aria-label="법률 질문 입력"
+          ></textarea>
+          <div class="ai-char-counter"><span id="ai-char-count">0</span> / 1,000자</div>
           <div class="ai-input-actions">
             <div class="ai-suggestions">
               <span class="suggest-label">예시 질문:</span>
-              <button class="suggest-chip" onclick="fillAiQuestion('전세 만기 후 보증금을 못 받고 있는데 임차권등기명령은 어떻게 신청하나요?')">전세보증금 미반환</button>
-              <button class="suggest-chip" onclick="fillAiQuestion('윗집에서 새벽마다 쿵쿵거리는 층간소음으로 피해를 보고 있는데 손해배상 청구가 가능한가요?')">층간소음 피해</button>
-              <button class="suggest-chip" onclick="fillAiQuestion('인터넷 중고거래로 돈을 보냈는데 연락을 끊고 잠적했습니다. 사기죄 고소와 돈을 돌려받는 절차가 궁금해요.')">중고거래 사기</button>
-              <button class="suggest-chip" onclick="fillAiQuestion('주 20시간 아르바이트를 6개월간 했는데 주휴수당과 퇴직금을 받을 수 있나요?')">알바 주휴수당</button>
+              <button type="button" class="suggest-chip" data-ai-question="전세 만기 후 보증금을 못 받고 있는데 임차권등기명령은 어떻게 신청하나요?">전세보증금 미반환</button>
+              <button type="button" class="suggest-chip" data-ai-question="윗집에서 새벽마다 쿵쿵거리는 층간소음으로 피해를 보고 있는데 손해배상 청구가 가능한가요?">층간소음 피해</button>
+              <button type="button" class="suggest-chip" data-ai-question="인터넷 중고거래로 돈을 보냈는데 연락을 끊고 잠적했습니다. 사기죄 고소와 돈을 돌려받는 절차가 궁금해요.">중고거래 사기</button>
+              <button type="button" class="suggest-chip" data-ai-question="주 20시간 아르바이트를 6개월간 했는데 주휴수당과 퇴직금을 받을 수 있나요?">알바 주휴수당</button>
             </div>
-            <button id="ai-submit-btn" class="primary-btn ai-btn" onclick="executeAiAsk()">
-              <span>AI 분석 & 판례 찾기</span>
-              <span class="btn-arrow">→</span>
+            <button type="button" id="ai-submit-btn" class="primary-btn ai-btn">
+              <span>AI 분석 &amp; 실시간 판례 찾기</span>
+              <span class="btn-arrow" aria-hidden="true">→</span>
             </button>
           </div>
         </div>
       </div>
 
       <!-- AI 분석 로딩 -->
-      <div id="ai-loading" class="loading-state" style="display: none;">
+      <div id="ai-loading" class="loading-state" hidden>
         <div class="spinner ai-spinner"></div>
-        <p>질문 분석 및 관련 공공 판례 매칭 중...</p>
-        <span class="loading-sub">Gemini AI와 대한민국 법제처 판례 DB를 종합 분석하고 있습니다.</span>
+        <p>1단계 키워드 추출 → 2단계 법제처 실시간 판례 조회 → 3단계 근거 요약 중...</p>
+        <span class="loading-sub">실제 대법원 판례를 대조해 답변을 생성하고 있습니다.</span>
       </div>
 
       <!-- AI 분석 결과 카드 -->
-      <div id="ai-result-container" class="ai-result-wrap" style="display: none;">
-        <!-- JS 동적 렌더링 -->
-      </div>
+      <div id="ai-result-container" class="ai-result-wrap" hidden></div>
     </section>
 
     <!-- 3. 내 보관함 탭 뷰 -->
-    <section id="view-bookmarks" class="tab-view">
+    <section id="view-bookmarks" class="tab-view" aria-label="내 보관함">
       <div class="bookmarks-header">
-        <h2>⭐ 저장한 관심 판례 (<span id="bookmark-total-count">0</span>)</h2>
-        <p>내가 스크랩해 둔 주요 판례와 법률 정보를 언제든지 다시 확인할 수 있습니다.</p>
+        <h2>⭐ 내 기기 관심 판례 보관함 (<span id="bookmark-total-count">0</span>)</h2>
+        <p>저장한 관심 판례는 기기별 고유 식별자로 안전하게 분리 보관됩니다.</p>
       </div>
-      <div id="bookmarks-list-container" class="precedents-grid">
-        <!-- JS 동적 렌더링 -->
-      </div>
+      <div id="bookmarks-list-container" class="precedents-grid"></div>
     </section>
-
   </main>
 
-  <!-- 판례 상세 보기 모달 / 바텀시트 -->
-  <div id="detail-modal" class="modal-overlay" onclick="closeDetailModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
+  <!-- 판례 상세 보기 모달 / 모바일 Zero-Cut 바텀시트 (지침 제17원칙) -->
+  <div id="detail-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-case-name">
+    <div class="modal-card" id="detail-modal-card">
       <div class="modal-header">
         <div class="modal-title-group">
           <div class="modal-badges">
-            <span class="badge case-type" id="modal-case-type">-</span>
-            <span class="badge court-name" id="modal-court-name">-</span>
-            <span class="badge judg-date" id="modal-judg-date">-</span>
+            <span class="badge-tag badge-type" id="modal-case-type">-</span>
+            <span class="badge-tag badge-court" id="modal-court-name">-</span>
+            <span class="badge-tag badge-date" id="modal-judg-date">-</span>
           </div>
           <h2 id="modal-case-name">판례 제목</h2>
           <div class="modal-case-number" id="modal-case-number">사건번호</div>
         </div>
-        <button class="modal-close-btn" onclick="closeDetailModalDirect()">✕</button>
+        <button type="button" class="modal-close-btn" id="btn-close-detail-modal" aria-label="상세 창 닫기">✕</button>
       </div>
 
       <!-- 상세 탭 네비게이션 -->
-      <div class="modal-tabs">
-        <button class="modal-tab active" onclick="switchDetailTab('holding')">판시사항</button>
-        <button class="modal-tab" onclick="switchDetailTab('summary')">판결요지</button>
-        <button class="modal-tab" onclick="switchDetailTab('statute')">참조조문·판례</button>
-        <button class="modal-tab" onclick="switchDetailTab('content')">판례전문</button>
+      <div class="modal-tabs" role="tablist">
+        <button type="button" class="modal-tab active" data-detail-tab="holding" role="tab">판시사항</button>
+        <button type="button" class="modal-tab" data-detail-tab="summary" role="tab">판결요지</button>
+        <button type="button" class="modal-tab" data-detail-tab="statute" role="tab">참조조문·판례</button>
+        <button type="button" class="modal-tab" data-detail-tab="content" role="tab">판례전문</button>
       </div>
 
       <!-- 상세 본문 영역 -->
-      <div class="modal-body">
+      <div class="modal-body" id="detail-modal-body">
+        <div id="modal-external-notice" class="external-notice-box" hidden>
+          <strong>📌 외부 연계 출처 판례 안내</strong>
+          <p>국세법령정보시스템 등 외부 연계 판례는 법제처 Open API에서 전문 텍스트가 직접 제공되지 않습니다. 하단의 <strong>[법제처 원문]</strong> 버튼에서 공식 페이지로 바로 확인하실 수 있습니다.</p>
+        </div>
+
         <div id="modal-tab-holding" class="detail-tab-pane active">
           <div class="content-block">
             <h3>【판시사항】</h3>
@@ -208,7 +264,7 @@
             <h3>【참조조문】</h3>
             <div class="text-content statute-box" id="modal-statute-text">-</div>
           </div>
-          <div class="content-block" style="margin-top: 1.5rem;">
+          <div class="content-block mt-block">
             <h3>【참조판례】</h3>
             <div class="text-content" id="modal-precedent-text">-</div>
           </div>
@@ -222,18 +278,81 @@
         </div>
       </div>
 
-      <!-- 상세 모달 푸터 -->
+      <!-- 상세 모달 스티키 푸터 (지침 제17원칙) -->
       <div class="modal-footer">
-        <button class="btn secondary-btn" onclick="copyModalContent()">📋 내용 복사</button>
-        <button class="btn bookmark-btn" id="modal-bookmark-toggle-btn" onclick="toggleModalBookmark()">⭐ 보관함 저장</button>
-        <button class="btn primary-btn" onclick="closeDetailModalDirect()">닫기</button>
+        <a id="modal-external-link" class="btn external-btn" href="https://www.law.go.kr/precSc.do" target="_blank" rel="noopener noreferrer">🔗 법제처 원문</a>
+        <button type="button" class="btn secondary-btn" id="btn-copy-modal">📋 복사</button>
+        <button type="button" class="btn bookmark-btn" id="modal-bookmark-toggle-btn">☆ 보관</button>
+        <button type="button" class="btn primary-btn" id="btn-close-detail-footer">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA 브라우저별 설치 가이드 모달 (지침 제15원칙) -->
+  <div id="modalPwaGuide" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pwa-guide-title">
+    <div class="modal-card compact-modal">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2 id="pwa-guide-title">📱 LawFinder 모바일 앱 설치 가이드</h2>
+          <div class="modal-case-number">홈 화면에 추가하면 일반 앱처럼 전체화면으로 바로 실행됩니다.</div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modalPwaGuide" aria-label="설치 가이드 닫기">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="pwa-native-install-box" class="pwa-install-cta" hidden>
+          <button type="button" id="btn-pwa-modal-install" class="primary-btn full-width-btn">🚀 지금 바로 원클릭 앱 설치하기</button>
+        </div>
+        <div class="pwa-guide-list">
+          <div class="pwa-guide-item">
+            <strong>🤖 구글 크롬 (Android)</strong>
+            <p>우측 상단 <strong>[⋮ 메뉴]</strong> → <strong>[앱 설치]</strong> 또는 <strong>[홈 화면에 추가]</strong>를 선택하면 독립 앱(WebAPK)으로 설치됩니다.</p>
+          </div>
+          <div class="pwa-guide-item">
+            <strong>🌐 삼성 인터넷 (Android)</strong>
+            <p>우측 하단 <strong>[≡ 메뉴]</strong> → <strong>[현재 페이지 추가]</strong> → 단순 홈 화면이 아닌 <strong>👉 [앱 (App)]</strong>을 선택해 주세요.</p>
+          </div>
+          <div class="pwa-guide-item">
+            <strong>🐳 네이버 웨일</strong>
+            <p>웨일 정책상 독립 앱 대신 북마크로 저장됩니다. 독립 창 앱 구동을 원하시면 크롬 또는 삼성 인터넷을 권장합니다.</p>
+          </div>
+          <div class="pwa-guide-item">
+            <strong>🍎 아이폰 / 아이패드 (iOS Safari)</strong>
+            <p>하단 <strong>[공유 ⎋]</strong> 버튼 → 아래로 스크롤해 <strong>[홈 화면에 추가 ➕]</strong> → 우측 상단 <strong>[추가]</strong>를 누르면 3초 만에 완료됩니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn primary-btn" data-close-modal="modalPwaGuide">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 새 버전 업데이트 보고창 모달 (지침 제16원칙) -->
+  <div id="modalWhatsNew" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="whatsnew-title">
+    <div class="modal-card compact-modal">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-badges">
+            <span class="badge-tag badge-court" id="whatsnew-version-badge">v2.0.0</span>
+            <span class="badge-tag badge-date" id="whatsnew-build-badge">최신 릴리스</span>
+          </div>
+          <h2 id="whatsnew-title">🚀 LawFinder 업데이트 안내</h2>
+        </div>
+        <button type="button" class="modal-close-btn" id="btn-dismiss-whatsnew-x" aria-label="업데이트 안내 닫기">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="whatsnew-summary" class="whatsnew-summary"></p>
+        <div id="whatsnew-features" class="whatsnew-features-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn primary-btn full-width-btn" id="btn-dismiss-whatsnew">확인하고 계속하기</button>
       </div>
     </div>
   </div>
 
   <!-- 토스트 알림 컨테이너 -->
-  <div id="toast-container" class="toast-wrap"></div>
+  <div id="toast-container" class="toast-wrap" aria-live="polite"></div>
 
-  <script src="/app.js"></script>
+  <script src="/app.js?v=2.0.0" defer></script>
 </body>
 </html>

@@ -1,53 +1,51 @@
-# ⚖️ LawFinder (AI 판례 검색 & 법률 Q&A 포털)
+# ⚖️ LawFinder v2.0 (AI 판례 검색 & 법률 Q&A 포털)
 
-대한민국 법제처 국가법령정보 공동활용(open.law.go.kr) Open API와 Google Gemini AI를 결합한 **차세대 지능형 판례 검색 및 법률 질의응답 서비스**입니다.
+대한민국 법제처 국가법령정보 공동활용(`https://www.law.go.kr`, HTTPS/JSON) Open API와 **Google Gemini 2.5 Flash**를 결합한 **실시간 2단계 RAG 법률 판례 검색·질의응답 서비스**입니다.
 
----
-
-## 🌟 주요 기능
-1. **공공 판례 통합 검색**:
-   - 대법원 및 하급심 판례 실시간 검색 (판례명, 본문, 사건번호)
-   - 선고일자 최신순 정렬 및 법원/사건유형별 뱃지 제공
-2. **AI 하이브리드 법률 Q&A (RAG)**:
-   - 일상 대화체 질문 입력 시 AI가 핵심 법률 쟁점, 적용 법조문, 행동 요령을 알기 쉽게 3줄 요약
-   - 관련 판례를 자동으로 추천하여 연계 제공
-3. **판례 상세 & 조문 뷰어**:
-   - 판시사항, 판결요지, 참조조문, 판례 전문 탭 분리 뷰어
-   - 모바일 바텀시트 / PC 모달 반응형 인터페이스
-   - 판례 내용 복사 및 북마크(보관함) 저장
-4. **스마트 Fallback 모드**:
-   - 외부 API 키가 없거나 공공 서버 장애 시에도 10대 민생 법률 고품질 판례 데이터셋으로 100% 정상 구동
-5. **PWA & 모바일 최적화**:
-   - 모바일 홈 화면 추가 시 독립형 앱(Standalone) 구동
-   - BFCache 대응 및 오프라인 서비스 워커 캐싱
+👉 **운영 주소:** [https://law.danminlove.com](https://law.danminlove.com)
 
 ---
 
-## 🚀 시놀로지 DS1019+ Portainer 배포 가이드
+## 🌟 주요 기능 (v2.0.0)
+1. **법제처 실시간 HTTPS/JSON 판례 검색**:
+   - 대법원·고등법원·지방법원 필터, 판례명/본문 검색, 다중 페이지네이션 지원.
+   - 국세법령정보시스템 등 API 전문 미제공 외부 연계 판례도 404 오류 없이 국가법령정보센터 공식 원문 링크로 즉시 연결.
+2. **진짜 2단계 AI RAG 법률 Q&A**:
+   - **1단계:** Gemini 2.5 Flash(`gemini-flash-latest` 자동 폴백)가 일상 언어에서 핵심 법률 키워드 추출.
+   - **2단계:** 법제처 실시간 대법원 판례 조회 및 상위 판례 판시사항·요지 병렬 수집.
+   - **3단계:** 실제 조회된 판례 번호·요지에 근거한 맞춤형 대응 조언 및 인용 판례 생성 (`analysisSource` 투명 표기).
+3. **엔터프라이즈급 보안 및 성능 최적화**:
+   - 엄격 CSP(`script-src 'self'`, 인라인 이벤트 핸들러 0개), OWASP 보안 헤더, `x-powered-by` 제거.
+   - Sliding-Window Rate Limiting(일반 90/분, AI 10/분), 64KB 요청 제한, `x-goog-api-key` 헤더 인증.
+   - 유계 LRU + TTL + 동시 요청 병합 캐시(`lib/cache.js`) 및 기기별 UUID v4 격리 북마크(`lib/security.js`).
+   - `npm audit` 취약점 **0건**.
+4. **모바일/PC 듀얼 최적화 & PWA 표준**:
+   - 상단바 접기(`Alt+H`) + 1행 요약바, 모바일 상세 필터 자동 접힘, `90dvh` Zero-Cut 바텀시트 & 스티키 푸터.
+   - PNG 아이콘(180/192/512px), 원클릭 설치 배너 및 브라우저별 설치 가이드, 실시간 버전 자동 갱신 & What's New 보고창.
 
-### 1. Portainer 스택 생성
-* **Stack Name:** `law-finder`
-* **Port:** `8095:80`
-* **Network:** `npm_default`
-* **Volume:** `lawfinder_data:/app/data`
+---
 
-### 2. 환경변수 설정
-| 환경변수명 | 필수 여부 | 설명 |
+## 🚀 테스트 및 실행
+
+```bash
+# 로컬 테스트 (문법 검사 + 단위/통합 테스트)
+npm test
+
+# 서버 실행
+PORT=8080 LAW_OC=your_oc GEMINI_API_KEY=your_key npm start
+```
+
+### 시놀로지 DS1019+ Portainer 환경변수
+| 환경변수명 | 기본값 | 설명 |
 | :--- | :--- | :--- |
-| `LAW_OC` | 선택 (권장) | 국가법령정보 공동활용(open.law.go.kr) 발급 인증값(ID) |
-| `GEMINI_API_KEY` | 선택 (권장) | Google AI Studio(aistudio.google.com) 발급 API Key |
-| `PORT` | 기본값 `80` | 내부 컨테이너 포트 |
-
-### 3. Nginx Proxy Manager (NPM) 리버스 프록시 연동
-1. **Domain Names:** `law.danminlove.com`
-2. **Forward Hostname / IP:** `192.168.0.96` (또는 컨테이너명 `law-finder`)
-3. **Forward Port:** `8095` (컨테이너 직접 지정 시 `80`)
-4. **옵션:** `Block Exploits`, `Websockets Support` 활성화
-5. **SSL:** Let's Encrypt 공인 인증서 적용 (`Force SSL`, `HTTP/2 Support`)
+| `LAW_OC` | - | 국가법령정보 공동활용(open.law.go.kr) 인증값(ID) |
+| `GEMINI_API_KEY` | - | Google AI Studio API Key |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | 주 Gemini 모델명 (장애 시 `gemini-flash-latest` 자동 폴백) |
+| `NODE_OPTIONS` | `--max-old-space-size=192` | 시놀로지 NAS 메모리 상한 보호 (`mem_limit: 256m`) |
 
 ---
 
 ## 📄 기술 문서
-* [기술레포트.md](./기술레포트.md): 시스템 아키텍처 및 REST API 상세 명세서
-* [트러블슈팅.md](./트러블슈팅.md): 공공 API CORS, XML 파싱, 장애 극복 패턴
-* [히스토리.md](./히스토리.md): 개발 단계별 작업 타임라인
+* [기술레포트.md](./기술레포트.md): v2.0.0 아키텍처, 보안 및 REST API 상세 명세서
+* [트러블슈팅.md](./트러블슈팅.md): 6대 핵심 RCA, 해결 패턴 및 재발 방지 체크리스트
+* [히스토리.md](./히스토리.md): 단계별 개발·배포 타임라인

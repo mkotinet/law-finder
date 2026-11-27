@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "build": "20261127_2200",
+  "name": "LawFinder",
+  "releaseNotes": "Gemini 2.5 Flash 실시간 2단계 RAG 전환, 법제처 HTTPS/JSON 고속 연동, 보안 강화, 페이지네이션 및 모바일/PC 반응형 UX 전면 고도화",
+  "features": [
+    {
+      "icon": "🤖",
+      "title": "진짜 2단계 AI RAG 법률 분석",
+      "desc": "Gemini 2.5 Flash로 핵심 법률 키워드를 추출하고 법제처 실시간 판례를 조회·요약해 근거 판례 기반 조언을 제공합니다."
+    },
+    {
+      "icon": "⚖️",
+      "title": "법제처 HTTPS·JSON 연동 및 404 해소",
+      "desc": "평문 HTTP와 XML 파싱을 제거하고 HTTPS 네이티브 JSON으로 전환했으며, 국세법령 등 외부 연계 판례도 원문 링크로 안전하게 연결됩니다."
+    },
+    {
+      "icon": "🛡️",
+      "title": "보안 헤더·속도 제한·개인별 보관함 격리",
+      "desc": "CSP/보안 헤더, AI 호출 Rate Limiting, 입력값 검증, 이벤트 위임(XSS 차단) 및 기기별 독립 보관함을 적용했습니다."
+    },
+    {
+      "icon": "📱",
+      "title": "페이지네이션·PWA 원클릭 설치·반응형 고도화",
+      "desc": "다중 페이지 탐색, 법원별 필터, 상단바 접기(Alt+H), 모바일 Zero-Cut 바텀시트 및 자동 버전 업데이트를 지원합니다."
+    }
+  ]
+}
