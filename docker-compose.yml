@@ -12,8 +12,8 @@ services:
     environment:
       - PORT=80
       - TZ=Asia/Seoul
-      - LAW_OC=${LAW_OC:-}                 # 국가법령정보센터(open.law.go.kr) Open API 발급 인증값(ID)
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-} # Google Gemini AI API Key
+      - LAW_OC=${LAW_OC:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/api/health || exit 1"]
@@ -38,7 +38,6 @@ services:
         rm -rf /app_src/data &&
         ln -s /app/data /app_src/data &&
         cd /app_src &&
-        npm install --production &&
         node server.js
       "
     networks:
